@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jingle Bells Kick Face</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">Jingle Bells Kick Face</div>
+    <button id="menuBtn" class="menu-btn" aria-label="Open menu">☰</button>
+  </header>
+
+  <aside id="sideMenu" class="side-menu" aria-hidden="true">
+    <nav class="menu-inner" role="navigation" aria-label="Main menu">
+      <ul class="menu-list">
+        <li><a href="#" data-route="archive">Archive</a></li>
+        <li><a href="#" data-route="latest">Latest updates</a></li>
+        <li><a href="#" data-route="info">More info</a></li>
+        <li><a href="#" data-route="suggestions">Suggestions</a></li>
+        <li><a href="#" data-route="characters">Know our characters</a></li>
+      </ul>
+    </nav>
+    <div class="menu-footer">
+      <a class="small-link" href="dev.html" target="_blank" rel="noopener">Developer Page</a>
+      <button id="closeMenu" class="close-menu" aria-label="Close menu">✕</button>
+    </div>
+  </aside>
+
+  <main id="app" class="container">
+    <!-- HOME -->
+    <section id="home" class="page active">
+      <div class="hero card">
+        <h1>Welcome to Jingle Bells Kick Face</h1>
+        <div class="hero-actions">
+          <button class="btn primary" data-route="archive">Visit Archive</button>
+          <button class="btn" data-route="info">Know more</button>
+        </div>
+      </div>
+
+      <section id="charactersPreview" class="section">
+        <h2>Characters</h2>
+        <div class="video-wrap card">
+          <video id="charactersVideo" controls playsinline preload="metadata">
+            <source src="" type="video/mp4">
+          </video>
+        </div>
+        <div id="charactersList" class="cards"></div>
+      </section>
+
+      <section id="aboutPreview" class="section">
+        <h2>About JBKF</h2>
+        <div id="aboutText" class="card"></div>
+      </section>
+    </section>
+
+    <!-- ARCHIVE -->
+    <section id="archive" class="page">
+      <div class="page-header">
+        <button class="back" data-back>← Back</button>
+        <h2>Archive</h2>
+      </div>
+      <div id="seriesGrid" class="grid"></div>
+    </section>
+
+    <!-- SERIES -->
+    <section id="series" class="page">
+      <div class="page-header">
+        <button class="back" data-back>← Back</button>
+        <h2 id="seriesTitle">Series</h2>
+      </div>
+      <div id="seriesIntro" class="card"></div>
+
+      <div class="section">
+        <h3>Temporary Characters</h3>
+        <div id="seriesCharacters" class="cards"></div>
+      </div>
+
+      <div class="section">
+        <h3>Chapters</h3>
+        <ul id="chaptersList" class="list"></ul>
+      </div>
+    </section>
+
+    <!-- CHAPTER -->
+    <section id="chapter" class="page">
+      <div class="page-header">
+        <button class="back" data-back>← Back</button>
+        <div>
+          <h2 id="chapterTitle">Chapter</h2>
+          <div id="chapterMeta" class="meta"></div>
+        </div>
+      </div>
+      <article id="chapterContent" class="content card"></article>
+    </section>
+
+    <!-- INFO -->
+    <section id="info" class="page">
+      <div class="page-header">
+        <button class="back" data-back>← Back</button>
+        <h2>More Info</h2>
+      </div>
+      <div id="infoText" class="card content"></div>
+    </section>
+
+    <!-- SUGGESTIONS -->
+    <section id="suggestions" class="page">
+      <div class="page-header">
+        <button class="back" data-back>← Back</button>
+        <h2>Suggestions</h2>
+      </div>
+      <div class="card">
+        <textarea id="suggestionInput" placeholder="Write your suggestions..." rows="6"></textarea>
+        <div class="row">
+          <button id="saveSuggestion" class="btn primary">Save Suggestion</button>
+        </div>
+        <div id="suggestionsList" class="saved"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
