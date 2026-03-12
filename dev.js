@@ -1,41 +1,56 @@
-/* dev.js
-   - Minimal developer editor that edits data.json in the repo
-   - Prompts for a GitHub Personal Access Token at commit time (not stored)
-   - Matches the structure of dev.html
+/* dev.js - robust, defensive version
+   - Loads data.json (best-effort)
+   - Shows editor even if load fails and prints errors to console + on-page message
+   - Commits via GitHub API (prompts for token)
 */
 
-const owner = "Visevt2019";   // replace with your GitHub username/org
-const repo = "JBKF-Archive";  // replace with your repo name
-const branch = "main";        // change if your default branch differs
+const owner = "Visevt2019";   // update if needed
+const repo = "JBKF-Archive";  // update if needed
+const branch = "main";
 
-let DATA = null;
+let DATA = { about: "JBKF", video: "", characters: [], series: [] };
 let currentSeriesId = null;
 let currentChapterId = null;
 
 const $ = s => document.querySelector(s);
-
-/* Utility */
 function uid(prefix='id'){ return prefix + Date.now().toString(36).slice(-6); }
-function setHidden(sel, hidden){ const el = $(sel); if(!el) return; el.style.display = hidden ? 'none' : ''; }
 
-/* Load data.json from repo (raw) */
 async function loadData(){
   try {
     const res = await fetch("data.json", { cache: "no-store" });
-    if(!res.ok) throw new Error("Failed to load data.json");
-    DATA = await res.json();
-  } catch(e){
-    console.error(e);
-    DATA = { about: "JBKF", video: "", characters: [], series: [] };
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const json = await res.json();
+    DATA = json;
+    console.log("data.json loaded", DATA);
+  } catch(err){
+    console.error("Failed to load data.json:", err);
+    showError("Warning: could not load data.json. Editor will still work but commits may create/overwrite data.json.");
+    // keep default DATA so editor still functions
   }
 }
 
-/* Commit DATA to GitHub by updating data.json (requires token) */
-async function commitData(message){
-  const token = prompt("Paste a GitHub Personal Access Token with repo contents write access. It will not be stored.");
-  if(!token) { alert("No token provided. Commit cancelled."); return; }
+function showError(msg){
+  let el = $('#devError');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'devError';
+    el.style.background = '#fff3cd';
+    el.style.border = '1px solid #ffeeba';
+    el.style.padding = '10px';
+    el.style.margin = '10px 0';
+    el.style.borderRadius = '6px';
+    const container = document.body;
+    container.insertBefore(el, container.firstChild);
+  }
+  el.textContent = msg;
+}
 
-  // Get current file SHA (if exists)
+/* Commit DATA to GitHub */
+async function commitData(message){
+  const token = prompt("Paste a GitHub Personal Access Token with repo write access. It will not be stored.");
+  if(!token){ alert("No token provided. Commit cancelled."); return; }
+
+  // get current SHA if exists
   let sha = null;
   try {
     const metaRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/data.json?ref=${branch}`, {
@@ -46,7 +61,7 @@ async function commitData(message){
       sha = meta.sha;
     }
   } catch(e){
-    // ignore, sha stays null (create file)
+    console.warn("Could not fetch file metadata:", e);
   }
 
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/data.json`;
@@ -57,38 +72,30 @@ async function commitData(message){
   };
   if(sha) body.sha = sha;
 
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
-
-  if(!res.ok){
-    const txt = await res.text();
-    alert("Commit failed: " + res.status + " — " + txt);
-    throw new Error("Commit failed");
+  try {
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok){
+      const txt = await res.text();
+      throw new Error(res.status + " " + txt);
+    }
+    alert("Commit successful.");
+  } catch(err){
+    console.error("Commit failed:", err);
+    alert("Commit failed: " + err.message);
   }
-
-  alert("Commit successful. The site will reflect changes once GitHub Pages/Actions update.");
 }
 
-/* UI wiring and editor logic */
-async function onLogin(){
-  await loadData();
-  $('#loginCard').style.display = 'none';
-  $('#editorCard').style.display = '';
-  renderSeriesSelect();
-  hideChapterEditor();
-}
-
-$('#loginBtn').addEventListener('click', onLogin);
-
-/* Series select and controls */
+/* UI helpers */
 function renderSeriesSelect(){
   const sel = $('#seriesSelect');
+  if(!sel) return;
   sel.innerHTML = '';
   (DATA.series || []).forEach(s => {
     const opt = document.createElement('option');
@@ -97,49 +104,28 @@ function renderSeriesSelect(){
     sel.appendChild(opt);
   });
   currentSeriesId = sel.value || (DATA.series[0] && DATA.series[0].id) || null;
-  sel.value = currentSeriesId;
+  sel.value = currentSeriesId || '';
   onSeriesChange();
 }
-$('#seriesSelect').addEventListener('change', ()=> { currentSeriesId = $('#seriesSelect').value; onSeriesChange(); });
-
 function onSeriesChange(){
   currentChapterId = null;
   const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
   if(!s){
-    $('#seriesTitle').value = '';
-    $('#seriesIntro').value = '';
-    $('#seriesImage').value = '';
-    $('#chaptersList').innerHTML = '';
+    if($('#seriesTitle')) $('#seriesTitle').value = '';
+    if($('#seriesIntro')) $('#seriesIntro').value = '';
+    if($('#seriesImage')) $('#seriesImage').value = '';
+    if($('#chaptersList')) $('#chaptersList').innerHTML = '';
     return;
   }
-  $('#seriesTitle').value = s.title || '';
-  $('#seriesIntro').value = s.intro || '';
-  $('#seriesImage').value = s.image || '';
+  if($('#seriesTitle')) $('#seriesTitle').value = s.title || '';
+  if($('#seriesIntro')) $('#seriesIntro').value = s.intro || '';
+  if($('#seriesImage')) $('#seriesImage').value = s.image || '';
   renderChaptersList(s);
   hideChapterEditor();
 }
-
-/* Add / remove series */
-$('#addSeries').addEventListener('click', ()=>{
-  const id = uid('s');
-  const newS = { id, title: 'New Series', image: '', intro: '', chapters: [] };
-  DATA.series = DATA.series || [];
-  DATA.series.push(newS);
-  renderSeriesSelect();
-  $('#seriesSelect').value = id;
-  currentSeriesId = id;
-  onSeriesChange();
-});
-$('#removeSeries').addEventListener('click', ()=>{
-  if(!currentSeriesId) return alert('No series selected');
-  if(!confirm('Delete selected series?')) return;
-  DATA.series = (DATA.series || []).filter(s => s.id !== currentSeriesId);
-  renderSeriesSelect();
-});
-
-/* Chapters list */
 function renderChaptersList(series){
   const list = $('#chaptersList');
+  if(!list) return;
   list.innerHTML = '';
   if(!series.chapters || !series.chapters.length){
     list.innerHTML = '<div class="hint">No chapters yet</div>';
@@ -163,67 +149,104 @@ function renderChaptersList(series){
     renderChaptersList(s);
   }));
 }
-
-/* Add chapter */
-$('#addChapter').addEventListener('click', ()=>{
-  if(!currentSeriesId) return alert('Select a series first');
-  const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
-  const chId = s.id + '-ch' + Date.now().toString(36);
-  const newCh = { id: chId, title: 'New Chapter', date: new Date().toISOString().slice(0,10), author: '', code: '' };
-  s.chapters = s.chapters || [];
-  s.chapters.push(newCh);
-  renderChaptersList(s);
-  openChapterEditor(chId);
-});
-
-/* Chapter editor */
 function openChapterEditor(chId){
   const s = (DATA.series || []).find(x=>x.id === currentSeriesId); if(!s) return;
   const ch = (s.chapters || []).find(x=>x.id === chId); if(!ch) return;
   currentChapterId = chId;
-  $('#chapterTitle').value = ch.title || '';
-  $('#chapterDate').value = ch.date || '';
-  $('#chapterAuthor').value = ch.author || '';
-  $('#chapterCode').value = ch.code || '';
-  $('#chapterForm').style.display = '';
+  if($('#chapterTitle')) $('#chapterTitle').value = ch.title || '';
+  if($('#chapterDate')) $('#chapterDate').value = ch.date || '';
+  if($('#chapterAuthor')) $('#chapterAuthor').value = ch.author || '';
+  if($('#chapterCode')) $('#chapterCode').value = ch.code || '';
+  if($('#chapterForm')) $('#chapterForm').style.display = '';
 }
-$('#cancelChapter').addEventListener('click', ()=> { $('#chapterForm').style.display = 'none'; currentChapterId = null; });
+function hideChapterEditor(){ if($('#chapterForm')) $('#chapterForm').style.display = 'none'; currentChapterId = null; }
 
-$('#saveChapter').addEventListener('click', async ()=>{
-  if(!currentSeriesId || !currentChapterId) return alert('No chapter selected');
-  const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
-  const ch = (s.chapters || []).find(x=>x.id === currentChapterId);
-  if(!ch) return;
-  ch.title = $('#chapterTitle').value.trim();
-  ch.date = $('#chapterDate').value.trim();
-  ch.author = $('#chapterAuthor').value.trim();
-  ch.code = $('#chapterCode').value;
-  renderChaptersList(s);
-  try {
-    await commitData(`Update chapter ${ch.id}`);
-  } catch(e){
-    console.error(e);
-  }
-});
+/* Event wiring (defensive: check elements exist) */
+function wireEvents(){
+  const loginBtn = $('#loginBtn');
+  if(loginBtn) loginBtn.addEventListener('click', async ()=>{
+    try {
+      await loadData();
+    } catch(e){
+      console.error("loadData error:", e);
+    }
+    // Always show editor to avoid blank screen
+    if($('#loginCard')) $('#loginCard').style.display = 'none';
+    if($('#editorCard')) $('#editorCard').style.display = '';
+    try { renderSeriesSelect(); } catch(e){ console.error(e); }
+  });
 
-/* Save series */
-$('#saveSeries').addEventListener('click', async ()=>{
-  if(!currentSeriesId) return alert('No series selected');
-  const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
-  s.title = $('#seriesTitle').value.trim();
-  s.intro = $('#seriesIntro').value.trim();
-  s.image = $('#seriesImage').value.trim();
-  renderSeriesSelect();
-  try {
-    await commitData(`Update series ${s.id}`);
-  } catch(e){
-    console.error(e);
-  }
-});
+  const sel = $('#seriesSelect');
+  if(sel) sel.addEventListener('change', ()=> { currentSeriesId = sel.value; onSeriesChange(); });
+
+  const addSeries = $('#addSeries');
+  if(addSeries) addSeries.addEventListener('click', ()=>{
+    const id = uid('s');
+    const newS = { id, title: 'New Series', image: '', intro: '', chapters: [] };
+    DATA.series = DATA.series || [];
+    DATA.series.push(newS);
+    renderSeriesSelect();
+    $('#seriesSelect').value = id;
+    currentSeriesId = id;
+    onSeriesChange();
+  });
+
+  const removeSeries = $('#removeSeries');
+  if(removeSeries) removeSeries.addEventListener('click', ()=>{
+    if(!currentSeriesId) return alert('No series selected');
+    if(!confirm('Delete selected series?')) return;
+    DATA.series = (DATA.series || []).filter(s => s.id !== currentSeriesId);
+    renderSeriesSelect();
+  });
+
+  const addChapter = $('#addChapter');
+  if(addChapter) addChapter.addEventListener('click', ()=>{
+    if(!currentSeriesId) return alert('Select a series first');
+    const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
+    const chId = s.id + '-ch' + Date.now().toString(36);
+    const newCh = { id: chId, title: 'New Chapter', date: new Date().toISOString().slice(0,10), author: '', code: '' };
+    s.chapters = s.chapters || [];
+    s.chapters.push(newCh);
+    renderChaptersList(s);
+    openChapterEditor(chId);
+  });
+
+  const saveChapter = $('#saveChapter');
+  if(saveChapter) saveChapter.addEventListener('click', async ()=>{
+    if(!currentSeriesId || !currentChapterId) return alert('No chapter selected');
+    const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
+    const ch = (s.chapters || []).find(x=>x.id === currentChapterId);
+    if(!ch) return;
+    ch.title = ($('#chapterTitle') && $('#chapterTitle').value.trim()) || ch.title;
+    ch.date = ($('#chapterDate') && $('#chapterDate').value.trim()) || ch.date;
+    ch.author = ($('#chapterAuthor') && $('#chapterAuthor').value.trim()) || ch.author;
+    ch.code = ($('#chapterCode') && $('#chapterCode').value) || ch.code;
+    renderChaptersList(s);
+    try { await commitData(`Update chapter ${ch.id}`); } catch(e){ console.error(e); }
+  });
+
+  const cancelChapter = $('#cancelChapter');
+  if(cancelChapter) cancelChapter.addEventListener('click', ()=> hideChapterEditor());
+
+  const saveSeries = $('#saveSeries');
+  if(saveSeries) saveSeries.addEventListener('click', async ()=>{
+    if(!currentSeriesId) return alert('No series selected');
+    const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
+    s.title = ($('#seriesTitle') && $('#seriesTitle').value.trim()) || s.title;
+    s.intro = ($('#seriesIntro') && $('#seriesIntro').value.trim()) || s.intro;
+    s.image = ($('#seriesImage') && $('#seriesImage').value.trim()) || s.image;
+    renderSeriesSelect();
+    try { await commitData(`Update series ${s.id}`); } catch(e){ console.error(e); }
+  });
+}
 
 /* Init */
 (async function init(){
-  // load data so the login can show editor after pressing login
-  await loadData();
-  // keep login visible until user presses login
+  try {
+    // pre-load data so login is faster; ignore errors
+    await loadData();
+  } catch(e){
+    console.warn("Initial loadData failed:", e);
+  }
+  wireEvents();
 })();
