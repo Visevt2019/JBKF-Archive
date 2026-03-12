@@ -1,7 +1,9 @@
-/* app.js - public site
-   - Uses localStorage key 'jbkf_simple_v1'
-   - Listens to BroadcastChannel 'jbkf_channel' and storage events to update live
-   - Renders chapter.code as HTML (you control the HTML)
+/* app.js
+   - Single storage key: 'jbkf_simple_v1'
+   - Menu auto-closes after any navigation click (mobile fix)
+   - Latest updates route fixed
+   - Renders chapter.code as HTML
+   - Characters: 6 dummy frames included in HTML; you can replace images by uploading files to repo root and editing via dev.html
 */
 
 const STORAGE_KEY = 'jbkf_simple_v1';
@@ -58,26 +60,39 @@ window.addEventListener('storage', (e) => {
   }
 });
 
-/* Routing & menu */
+/* Menu and routing */
 const pages = $$('.page');
 function showPage(id){
   pages.forEach(p => p.id === id ? p.classList.add('active') : p.classList.remove('active'));
   closeMenu();
   window.scrollTo({top:0,behavior:'smooth'});
 }
-const menuBtn = $('#menuBtn'), sideMenu = $('#sideMenu'), closeMenuBtn = $('#closeMenu');
+const menuBtn = $('#menuBtn'), sideMenu = $('#sideMenu'), menuCloseTop = $('#menuCloseTop');
 menuBtn.addEventListener('click', ()=> sideMenu.setAttribute('aria-hidden', sideMenu.getAttribute('aria-hidden') === 'false' ? 'true' : 'false'));
-closeMenuBtn.addEventListener('click', ()=> sideMenu.setAttribute('aria-hidden','true'));
+menuCloseTop.addEventListener('click', ()=> sideMenu.setAttribute('aria-hidden','true'));
 document.addEventListener('click', (e)=> { if(!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) sideMenu.setAttribute('aria-hidden','true'); });
 
-$$('[data-route]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); routeTo(el.getAttribute('data-route')); }));
+function closeMenu(){ sideMenu.setAttribute('aria-hidden','true'); }
+
+/* Menu links: auto-close after click */
+$$('[data-route]').forEach(el => el.addEventListener('click', e => {
+  e.preventDefault();
+  const route = el.getAttribute('data-route');
+  routeTo(route);
+  closeMenu(); // ensure menu closes after every press
+}));
+
+/* Visit Archive button ring should also close menu on mobile */
+$('#visitArchiveBtn').addEventListener('click', (e)=>{
+  const route = e.target.getAttribute('data-route');
+  routeTo(route);
+  closeMenu();
+});
 
 function routeTo(route){
   if(route === 'archive'){ renderArchive(); showPage('archive'); }
   else if(route === 'info'){ renderInfo(); showPage('info'); }
-  else if(route === 'suggestions'){ renderSuggestions(); showPage('suggestions'); }
-  else if(route === 'characters'){ showPage('home'); setTimeout(()=> scrollToChars(), 200); }
-  else if(route === 'latest'){ renderArchive(); showPage('archive'); }
+  else if(route === 'latest'){ renderLatest(); showPage('latest'); }
   else showPage('home');
 }
 
@@ -95,26 +110,8 @@ function renderHome(){
   const source = $('#charactersVideo source');
   source.src = vidSrc;
   $('#charactersVideo').load();
-  renderCharacters('#charactersList', DATA.characters);
 }
 function scrollToChars(){ const el = $('#charactersPreview'); if(el) el.scrollIntoView({behavior:'smooth'}); }
-function renderCharacters(sel, list){
-  const wrap = $(sel);
-  wrap.innerHTML = '';
-  (list || []).forEach(c => {
-    const card = document.createElement('div'); card.className = 'card';
-    card.innerHTML = `
-      <div style="display:flex;gap:12px;align-items:center">
-        <img src="${c.img ? './' + c.img : placeholder(96,96)}" alt="${esc(c.name)}" style="width:72px;height:72px;border-radius:10px;object-fit:cover">
-        <div>
-          <div style="font-weight:800">${esc(c.name)}</div>
-          <div class="meta">${esc(c.intro)}</div>
-        </div>
-      </div>
-    `;
-    wrap.appendChild(card);
-  });
-}
 
 /* Archive */
 function renderArchive(){
@@ -131,6 +128,26 @@ function renderArchive(){
   });
 }
 
+/* Latest */
+function renderLatest(){
+  const wrap = $('#latestList');
+  wrap.innerHTML = '';
+  const items = [];
+  (DATA.series || []).forEach(s => {
+    (s.chapters || []).forEach(ch => {
+      items.push({ seriesTitle: s.title, seriesId: s.id, chapter: ch });
+    });
+  });
+  items.sort((a,b)=> (b.chapter.date || '').localeCompare(a.chapter.date || ''));
+  if(!items.length){ wrap.innerHTML = '<p class="meta">No updates yet.</p>'; return; }
+  items.slice(0,8).forEach(it => {
+    const div = document.createElement('div'); div.className = 'card';
+    div.innerHTML = `<strong>${esc(it.chapter.title)}</strong><div class="meta">${esc(it.chapter.date)} • ${esc(it.chapter.author)} — ${esc(it.seriesTitle)}</div>`;
+    div.addEventListener('click', ()=> openChapter(it.seriesId, it.chapter.id));
+    wrap.appendChild(div);
+  });
+}
+
 /* Series view */
 let currentSeriesId = null;
 function openSeries(id){
@@ -138,7 +155,6 @@ function openSeries(id){
   currentSeriesId = id;
   $('#seriesTitle').textContent = s.title;
   $('#seriesIntro').innerHTML = `<div style="display:flex;gap:12px;align-items:flex-start"><img src="${s.image ? './' + s.image : placeholder(300,160)}" style="width:220px;height:120px;object-fit:cover;border-radius:10px"><div><p>${esc(s.intro)}</p></div></div>`;
-  renderCharacters('#seriesCharacters', DATA.characters ? DATA.characters.filter(c => s.characters && s.characters.includes(c.id)) : []);
   const list = $('#chaptersList'); list.innerHTML = '';
   (s.chapters || []).forEach(ch => {
     const li = document.createElement('li'); li.className = 'item';
@@ -159,36 +175,12 @@ function openChapter(seriesId, chapterId){
   showPage('chapter');
 }
 
-/* Info & Suggestions */
+/* Info & init */
 function renderInfo(){ $('#infoText').innerHTML = DATA.about || ''; }
-function renderSuggestions(){
-  const wrap = $('#suggestionsList'); wrap.innerHTML = '';
-  (DATA.suggestions || []).forEach(s => {
-    const div = document.createElement('div'); div.className = 'saved-item';
-    div.innerHTML = `<div style="font-weight:700">${esc(s.date)}</div><div>${esc(s.text)}</div>`;
-    wrap.appendChild(div);
-  });
-}
-$('#saveSuggestion').addEventListener('click', ()=>{
-  const val = $('#suggestionInput').value.trim(); if(!val) return alert('Write something first');
-  DATA.suggestions = DATA.suggestions || [];
-  DATA.suggestions.unshift({ id: uid('sg'), text: val, date: new Date().toLocaleString() });
-  save(); $('#suggestionInput').value = ''; renderSuggestions();
-});
-
-/* Refresh current view after data change */
-function refreshCurrentView(){
-  // re-render everything relevant without changing route
-  renderHome();
-  renderArchive();
-  // if currently viewing a series or chapter, re-open them to refresh content
-  if(currentSeriesId && (DATA.series || []).find(s=>s.id===currentSeriesId)) openSeries(currentSeriesId);
-}
-
-/* Init */
-renderHome(); renderArchive(); renderSuggestions();
+function refreshCurrentView(){ renderHome(); renderArchive(); renderLatest(); if(currentSeriesId) openSeries(currentSeriesId); }
+renderHome(); renderArchive(); renderLatest();
 
 /* Wire hero buttons */
 $$('.hero-actions [data-route]').forEach(b => b.addEventListener('click', e=>{
-  const route = b.getAttribute('data-route'); routeTo(route);
+  const route = b.getAttribute('data-route'); routeTo(route); closeMenu();
 }));
