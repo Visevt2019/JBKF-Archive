@@ -13,27 +13,26 @@
   </header>
 
   <aside id="sideMenu" class="side-menu" aria-hidden="true">
+    <button id="menuCloseTop" class="menu-close-top" aria-label="Close menu">✕</button>
     <nav class="menu-inner" role="navigation" aria-label="Main menu">
       <ul class="menu-list">
         <li><a href="#" data-route="archive">Archive</a></li>
         <li><a href="#" data-route="latest">Latest updates</a></li>
         <li><a href="#" data-route="info">More info</a></li>
-        <li><a href="#" data-route="suggestions">Suggestions</a></li>
-        <li><a href="#" data-route="characters">Know our characters</a></li>
       </ul>
     </nav>
     <div class="menu-footer">
       <a class="small-link" href="dev.html" target="_blank" rel="noopener">Developer Page</a>
-      <button id="closeMenu" class="close-menu" aria-label="Close menu">✕</button>
     </div>
   </aside>
 
   <main id="app" class="container">
+    <!-- HOME -->
     <section id="home" class="page active">
       <div class="hero card">
-        <h1>Welcome to Jingle Bells Kick Face</h1>
+        <h1 class="hero-title">Welcome to Jingle Bells Kick Face</h1>
         <div class="hero-actions">
-          <button class="btn primary" data-route="archive">Visit Archive</button>
+          <button id="visitArchiveBtn" class="btn primary ring" data-route="archive">Visit Archive</button>
           <button class="btn" data-route="info">Know more</button>
         </div>
       </div>
@@ -45,15 +44,65 @@
             <source src="" type="video/mp4">
           </video>
         </div>
-        <div id="charactersList" class="cards"></div>
+
+        <div id="charactersGrid" class="characters-grid">
+          <!-- 6 dummy character frames -->
+          <div class="char-card">
+            <div class="char-name">Rex Jingle</div>
+            <img class="char-img" src="" alt="Rex Jingle placeholder">
+            <div class="char-desc">A loud, chaotic protagonist who breaks the rules with a grin.</div>
+          </div>
+
+          <div class="char-card">
+            <div class="char-name">Merry Vale</div>
+            <img class="char-img" src="" alt="Merry Vale placeholder">
+            <div class="char-desc">Quiet strategist; always three steps ahead.</div>
+          </div>
+
+          <div class="char-card">
+            <div class="char-name">Noel Sparks</div>
+            <img class="char-img" src="" alt="Noel Sparks placeholder">
+            <div class="char-desc">Explosive energy and a soft spot for chaos.</div>
+          </div>
+
+          <div class="char-card">
+            <div class="char-name">Ivy Frost</div>
+            <img class="char-img" src="" alt="Ivy Frost placeholder">
+            <div class="char-desc">Calm, precise, and quietly dangerous.</div>
+          </div>
+
+          <div class="char-card">
+            <div class="char-name">Juno Bell</div>
+            <img class="char-img" src="" alt="Juno Bell placeholder">
+            <div class="char-desc">The voice of reason — until she isn't.</div>
+          </div>
+
+          <div class="char-card">
+            <div class="char-name">Patch Kringle</div>
+            <img class="char-img" src="" alt="Patch Kringle placeholder">
+            <div class="char-desc">Inventor of improbable devices and worse ideas.</div>
+          </div>
+        </div>
       </section>
 
       <section id="aboutPreview" class="section">
         <h2>About JBKF</h2>
-        <div id="aboutText" class="card"></div>
+        <div id="aboutText" class="card">Jingle Bells Kick Face is a meta series where each series unfolds with its own theme and chapters.</div>
       </section>
     </section>
 
+    <!-- LATEST -->
+    <section id="latest" class="page">
+      <div class="page-header">
+        <button class="back" data-back>← Back</button>
+        <h2>Latest updates</h2>
+      </div>
+      <div id="latestList" class="grid card">
+        <p class="meta">No updates yet. Add chapters from the Developer page to populate this list.</p>
+      </div>
+    </section>
+
+    <!-- ARCHIVE -->
     <section id="archive" class="page">
       <div class="page-header">
         <button class="back" data-back>← Back</button>
@@ -62,6 +111,7 @@
       <div id="seriesGrid" class="grid"></div>
     </section>
 
+    <!-- SERIES -->
     <section id="series" class="page">
       <div class="page-header">
         <button class="back" data-back>← Back</button>
@@ -80,6 +130,7 @@
       </div>
     </section>
 
+    <!-- CHAPTER -->
     <section id="chapter" class="page">
       <div class="page-header">
         <button class="back" data-back>← Back</button>
@@ -91,26 +142,13 @@
       <article id="chapterContent" class="content card"></article>
     </section>
 
+    <!-- INFO -->
     <section id="info" class="page">
       <div class="page-header">
         <button class="back" data-back>← Back</button>
         <h2>More Info</h2>
       </div>
-      <div id="infoText" class="card content"></div>
-    </section>
-
-    <section id="suggestions" class="page">
-      <div class="page-header">
-        <button class="back" data-back>← Back</button>
-        <h2>Suggestions</h2>
-      </div>
-      <div class="card">
-        <textarea id="suggestionInput" placeholder="Write your suggestions..." rows="6"></textarea>
-        <div class="row">
-          <button id="saveSuggestion" class="btn primary">Save Suggestion</button>
-        </div>
-        <div id="suggestionsList" class="saved"></div>
-      </div>
+      <div id="infoText" class="card content">Information about JBKF.</div>
     </section>
   </main>
 
