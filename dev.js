@@ -1,113 +1,150 @@
-/* dev.js - minimal developer editor
-   - Single storage key: 'jbkf_simple_v1'
-   - Login -> select/add/remove series -> edit series (title,intro,image filename)
-   - Chapters: add/remove/edit; chapter fields: title,date,author,code
-   - After save, broadcasts update via BroadcastChannel so index.html updates immediately
+/* dev.js
+   - Minimal developer editor that edits data.json in the repo
+   - Prompts for a GitHub Personal Access Token at commit time (not stored)
+   - Matches the structure of dev.html
 */
 
-const STORAGE_KEY = 'jbkf_simple_v1';
-const CHANNEL_NAME = 'jbkf_channel';
-const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(CHANNEL_NAME) : null;
+const owner = "Visevt2019";   // replace with your GitHub username/org
+const repo = "JBKF-Archive";  // replace with your repo name
+const branch = "main";        // change if your default branch differs
 
-const DEFAULT = {
-  about: "Jingle Bells Kick Face",
-  video: "",
-  characters: [],
-  series: [
-    {
-      id: 's1',
-      title: 'Series One: Winter Riot',
-      image: '',
-      intro: 'The first series.',
-      chapters: [
-        { id: 's1-ch1', title: 'Chapter 1', date: '2026-03-01', author: 'Parin', code: '<p>Chapter content here</p>' }
-      ]
-    }
-  ],
-  suggestions: []
-};
-
-let DATA = loadData();
-ensureCred();
-
-/* helpers */
-const $ = s => document.querySelector(s);
-const uid = (p='id') => p + Date.now().toString(36).slice(-6);
-function loadData(){ try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT)); }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); } }
-function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); if(bc) bc.postMessage({type:'data-updated'}); }
-function ensureCred(){ if(!localStorage.getItem('jbkf_dev_cred')) localStorage.setItem('jbkf_dev_cred', JSON.stringify({u:'admin', p:'password'})); }
-
-/* elements */
-const loginCard = $('#loginCard'), editorCard = $('#editorCard');
-const loginBtn = $('#loginBtn'), logoutBtn = $('#logoutBtn');
-const seriesSelect = $('#seriesSelect'), addSeries = $('#addSeries'), removeSeries = $('#removeSeries');
-const seriesTitle = $('#seriesTitle'), seriesIntro = $('#seriesIntro'), seriesImage = $('#seriesImage');
-const chaptersList = $('#chaptersList'), addChapter = $('#addChapter');
-const chapterForm = $('#chapterForm'), chapterTitle = $('#chapterTitle'), chapterDate = $('#chapterDate'), chapterAuthor = $('#chapterAuthor'), chapterCode = $('#chapterCode');
-const saveChapter = $('#saveChapter'), cancelChapter = $('#cancelChapter'), saveSeries = $('#saveSeries');
-
+let DATA = null;
 let currentSeriesId = null;
 let currentChapterId = null;
 
-/* login */
-loginBtn.addEventListener('click', ()=>{
-  const u = $('#loginUser').value.trim(), p = $('#loginPass').value;
-  const cred = JSON.parse(localStorage.getItem('jbkf_dev_cred') || '{}');
-  if(u === cred.u && p === cred.p){
-    loginCard.classList.add('hidden');
-    editorCard.classList.remove('hidden');
-    renderSeriesSelect();
-    hideChapterEditor();
-  } else alert('Invalid credentials');
-});
-logoutBtn.addEventListener('click', ()=>{
-  editorCard.classList.add('hidden');
-  loginCard.classList.remove('hidden');
-  currentSeriesId = null; currentChapterId = null;
-});
+const $ = s => document.querySelector(s);
 
-/* series select */
-function renderSeriesSelect(){
-  seriesSelect.innerHTML = '';
-  (DATA.series || []).forEach(s => {
-    const opt = document.createElement('option'); opt.value = s.id; opt.textContent = s.title || s.id;
-    seriesSelect.appendChild(opt);
+/* Utility */
+function uid(prefix='id'){ return prefix + Date.now().toString(36).slice(-6); }
+function setHidden(sel, hidden){ const el = $(sel); if(!el) return; el.style.display = hidden ? 'none' : ''; }
+
+/* Load data.json from repo (raw) */
+async function loadData(){
+  try {
+    const res = await fetch("data.json", { cache: "no-store" });
+    if(!res.ok) throw new Error("Failed to load data.json");
+    DATA = await res.json();
+  } catch(e){
+    console.error(e);
+    DATA = { about: "JBKF", video: "", characters: [], series: [] };
+  }
+}
+
+/* Commit DATA to GitHub by updating data.json (requires token) */
+async function commitData(message){
+  const token = prompt("Paste a GitHub Personal Access Token with repo contents write access. It will not be stored.");
+  if(!token) { alert("No token provided. Commit cancelled."); return; }
+
+  // Get current file SHA (if exists)
+  let sha = null;
+  try {
+    const metaRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/data.json?ref=${branch}`, {
+      headers: { Authorization: `token ${token}` }
+    });
+    if(metaRes.ok){
+      const meta = await metaRes.json();
+      sha = meta.sha;
+    }
+  } catch(e){
+    // ignore, sha stays null (create file)
+  }
+
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/data.json`;
+  const body = {
+    message: message || "Update data.json via dev page",
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(DATA, null, 2)))),
+    branch
+  };
+  if(sha) body.sha = sha;
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Authorization: `token ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
   });
-  if(!currentSeriesId && DATA.series && DATA.series.length) currentSeriesId = DATA.series[0].id;
-  seriesSelect.value = currentSeriesId || (DATA.series[0] && DATA.series[0].id) || '';
+
+  if(!res.ok){
+    const txt = await res.text();
+    alert("Commit failed: " + res.status + " — " + txt);
+    throw new Error("Commit failed");
+  }
+
+  alert("Commit successful. The site will reflect changes once GitHub Pages/Actions update.");
+}
+
+/* UI wiring and editor logic */
+async function onLogin(){
+  await loadData();
+  $('#loginCard').style.display = 'none';
+  $('#editorCard').style.display = '';
+  renderSeriesSelect();
+  hideChapterEditor();
+}
+
+$('#loginBtn').addEventListener('click', onLogin);
+
+/* Series select and controls */
+function renderSeriesSelect(){
+  const sel = $('#seriesSelect');
+  sel.innerHTML = '';
+  (DATA.series || []).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.title || s.id;
+    sel.appendChild(opt);
+  });
+  currentSeriesId = sel.value || (DATA.series[0] && DATA.series[0].id) || null;
+  sel.value = currentSeriesId;
   onSeriesChange();
 }
-seriesSelect.addEventListener('change', ()=> { currentSeriesId = seriesSelect.value; onSeriesChange(); });
+$('#seriesSelect').addEventListener('change', ()=> { currentSeriesId = $('#seriesSelect').value; onSeriesChange(); });
 
 function onSeriesChange(){
   currentChapterId = null;
   const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
-  if(!s){ seriesTitle.value=''; seriesIntro.value=''; seriesImage.value=''; chaptersList.innerHTML=''; return; }
-  seriesTitle.value = s.title || '';
-  seriesIntro.value = s.intro || '';
-  seriesImage.value = s.image || '';
+  if(!s){
+    $('#seriesTitle').value = '';
+    $('#seriesIntro').value = '';
+    $('#seriesImage').value = '';
+    $('#chaptersList').innerHTML = '';
+    return;
+  }
+  $('#seriesTitle').value = s.title || '';
+  $('#seriesIntro').value = s.intro || '';
+  $('#seriesImage').value = s.image || '';
   renderChaptersList(s);
   hideChapterEditor();
 }
 
-/* add/remove series */
-addSeries.addEventListener('click', ()=>{
+/* Add / remove series */
+$('#addSeries').addEventListener('click', ()=>{
   const id = uid('s');
   const newS = { id, title: 'New Series', image: '', intro: '', chapters: [] };
   DATA.series = DATA.series || [];
-  DATA.series.push(newS); saveData(); currentSeriesId = id; renderSeriesSelect(); onSeriesChange();
+  DATA.series.push(newS);
+  renderSeriesSelect();
+  $('#seriesSelect').value = id;
+  currentSeriesId = id;
+  onSeriesChange();
 });
-removeSeries.addEventListener('click', ()=>{
+$('#removeSeries').addEventListener('click', ()=>{
   if(!currentSeriesId) return alert('No series selected');
   if(!confirm('Delete selected series?')) return;
   DATA.series = (DATA.series || []).filter(s => s.id !== currentSeriesId);
-  saveData(); currentSeriesId = DATA.series[0] ? DATA.series[0].id : null; renderSeriesSelect(); onSeriesChange();
+  renderSeriesSelect();
 });
 
-/* chapters list */
+/* Chapters list */
 function renderChaptersList(series){
-  chaptersList.innerHTML = '';
-  if(!series.chapters || !series.chapters.length){ chaptersList.innerHTML = '<div class="hint">No chapters yet</div>'; return; }
+  const list = $('#chaptersList');
+  list.innerHTML = '';
+  if(!series.chapters || !series.chapters.length){
+    list.innerHTML = '<div class="hint">No chapters yet</div>';
+    return;
+  }
   series.chapters.forEach(ch => {
     const div = document.createElement('div'); div.className = 'item';
     div.innerHTML = `<div style="flex:1"><strong>${ch.title}</strong><div class="meta">${ch.date} • ${ch.author}</div></div>
@@ -115,69 +152,78 @@ function renderChaptersList(series){
         <button class="btn small edit-ch" data-id="${ch.id}">Edit</button>
         <button class="btn small del-ch" data-id="${ch.id}">Remove</button>
       </div>`;
-    chaptersList.appendChild(div);
+    list.appendChild(div);
   });
-  chaptersList.querySelectorAll('.edit-ch').forEach(b => b.addEventListener('click', e=> openChapterEditor(e.target.dataset.id)));
-  chaptersList.querySelectorAll('.del-ch').forEach(b => b.addEventListener('click', e=>{
+  list.querySelectorAll('.edit-ch').forEach(b => b.addEventListener('click', e=> openChapterEditor(e.target.dataset.id)));
+  list.querySelectorAll('.del-ch').forEach(b => b.addEventListener('click', e=>{
     const id = e.target.dataset.id;
     if(!confirm('Delete this chapter?')) return;
     const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
     s.chapters = (s.chapters || []).filter(c => c.id !== id);
-    saveData(); renderChaptersList(s);
+    renderChaptersList(s);
   }));
 }
 
-/* add chapter */
-addChapter.addEventListener('click', ()=>{
+/* Add chapter */
+$('#addChapter').addEventListener('click', ()=>{
   if(!currentSeriesId) return alert('Select a series first');
   const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
-  const chId = s.id + '-ch' + Date.now();
+  const chId = s.id + '-ch' + Date.now().toString(36);
   const newCh = { id: chId, title: 'New Chapter', date: new Date().toISOString().slice(0,10), author: '', code: '' };
   s.chapters = s.chapters || [];
-  s.chapters.push(newCh); saveData(); renderChaptersList(s); openChapterEditor(chId);
+  s.chapters.push(newCh);
+  renderChaptersList(s);
+  openChapterEditor(chId);
 });
 
-/* chapter editor */
+/* Chapter editor */
 function openChapterEditor(chId){
   const s = (DATA.series || []).find(x=>x.id === currentSeriesId); if(!s) return;
   const ch = (s.chapters || []).find(x=>x.id === chId); if(!ch) return;
   currentChapterId = chId;
-  chapterTitle.value = ch.title || '';
-  chapterDate.value = ch.date || '';
-  chapterAuthor.value = ch.author || '';
-  chapterCode.value = ch.code || '';
-  showChapterEditor();
+  $('#chapterTitle').value = ch.title || '';
+  $('#chapterDate').value = ch.date || '';
+  $('#chapterAuthor').value = ch.author || '';
+  $('#chapterCode').value = ch.code || '';
+  $('#chapterForm').style.display = '';
 }
-function showChapterEditor(){ chapterForm.style.display = 'block'; }
-function hideChapterEditor(){ chapterForm.style.display = 'none'; currentChapterId = null; }
+$('#cancelChapter').addEventListener('click', ()=> { $('#chapterForm').style.display = 'none'; currentChapterId = null; });
 
-/* save chapter */
-saveChapter.addEventListener('click', ()=>{
+$('#saveChapter').addEventListener('click', async ()=>{
   if(!currentSeriesId || !currentChapterId) return alert('No chapter selected');
   const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
   const ch = (s.chapters || []).find(x=>x.id === currentChapterId);
   if(!ch) return;
-  ch.title = chapterTitle.value.trim();
-  ch.date = chapterDate.value.trim();
-  ch.author = chapterAuthor.value.trim();
-  ch.code = chapterCode.value;
-  saveData(); renderChaptersList(s); alert('Chapter saved');
+  ch.title = $('#chapterTitle').value.trim();
+  ch.date = $('#chapterDate').value.trim();
+  ch.author = $('#chapterAuthor').value.trim();
+  ch.code = $('#chapterCode').value;
+  renderChaptersList(s);
+  try {
+    await commitData(`Update chapter ${ch.id}`);
+  } catch(e){
+    console.error(e);
+  }
 });
-cancelChapter.addEventListener('click', ()=> hideChapterEditor());
 
-/* save series */
-saveSeries.addEventListener('click', ()=>{
+/* Save series */
+$('#saveSeries').addEventListener('click', async ()=>{
   if(!currentSeriesId) return alert('No series selected');
   const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
-  s.title = seriesTitle.value.trim();
-  s.intro = seriesIntro.value.trim();
-  s.image = seriesImage.value.trim();
-  saveData(); renderSeriesSelect(); alert('Series saved');
+  s.title = $('#seriesTitle').value.trim();
+  s.intro = $('#seriesIntro').value.trim();
+  s.image = $('#seriesImage').value.trim();
+  renderSeriesSelect();
+  try {
+    await commitData(`Update series ${s.id}`);
+  } catch(e){
+    console.error(e);
+  }
 });
 
-/* init */
-(function init(){
-  if(!DATA.series) DATA.series = DEFAULT.series;
-  if(!DATA.series.length) { DATA.series = DEFAULT.series; saveData(); }
-  currentSeriesId = DATA.series[0] ? DATA.series[0].id : null;
+/* Init */
+(async function init(){
+  // load data so the login can show editor after pressing login
+  await loadData();
+  // keep login visible until user presses login
 })();
