@@ -1,0 +1,23 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node / npm (if you ever use it)
+node_modules/
+npm-debug.log*
+
+# Logs
+*.log
+
+# Build / cache directories (if you add tooling later)
+dist/
+build/
+.cache/
+
+# IDE/editor settings
+.vscode/
+.idea/
+*.swp
+
+# Misc
+*.tmp
