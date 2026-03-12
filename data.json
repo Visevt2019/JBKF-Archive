@@ -1,20 +1,114 @@
 {
-  "about": "Jingle Bells Kick Face",
+  "about": "Jingle Bells Kick Face is a meta series where each series unfolds with its own theme and chapters.",
+  "video": "trailer.mp4",
+  "characters": [
+    {
+      "id": "c1",
+      "name": "Rex Jingle",
+      "image": "rex-jingle.png",
+      "desc": "A loud, chaotic protagonist who breaks the rules with a grin."
+    },
+    {
+      "id": "c2",
+      "name": "Merry Vale",
+      "image": "merry-vale.png",
+      "desc": "Quiet strategist; always three steps ahead."
+    },
+    {
+      "id": "c3",
+      "name": "Noel Sparks",
+      "image": "noel-sparks.png",
+      "desc": "Explosive energy and a soft spot for chaos."
+    },
+    {
+      "id": "c4",
+      "name": "Ivy Frost",
+      "image": "ivy-frost.png",
+      "desc": "Calm, precise, and quietly dangerous."
+    },
+    {
+      "id": "c5",
+      "name": "Juno Bell",
+      "image": "juno-bell.png",
+      "desc": "The voice of reason — until she isn't."
+    },
+    {
+      "id": "c6",
+      "name": "Patch Kringle",
+      "image": "patch-kringle.png",
+      "desc": "Inventor of improbable devices and worse ideas."
+    }
+  ],
   "series": [
     {
       "id": "s1",
       "title": "Series One: Winter Riot",
-      "intro": "The first series introduces the world.",
       "image": "series1.png",
+      "intro": "The first series introduces the world and the chaotic spark that sets everything in motion.",
       "chapters": [
         {
           "id": "s1-ch1",
           "title": "Chapter 1: Bells",
           "date": "2026-03-01",
           "author": "Parin",
-          "code": "<p>Chapter one text goes here.</p>"
+          "code": "<p>The bells rang and the city changed. Rex Jingle laughed as the first snow fell.</p>"
+        },
+        {
+          "id": "s1-ch2",
+          "title": "Chapter 2: Cold Front",
+          "date": "2026-03-08",
+          "author": "Parin",
+          "code": "<p>Merry Vale mapped the streets while Noel Sparks tested a new device that hummed like a trapped star.</p>"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "Series Two: Neon Aftermath",
+      "image": "series2.png",
+      "intro": "After the riot, the city rebuilds under neon lights and uneasy alliances.",
+      "chapters": [
+        {
+          "id": "s2-ch1",
+          "title": "Chapter 1: Flicker",
+          "date": "2026-04-12",
+          "author": "Parin",
+          "code": "<p>Neon signs buzzed back to life. Ivy Frost watched from the rooftop, calculating the next move.</p>"
+        },
+        {
+          "id": "s2-ch2",
+          "title": "Chapter 2: Short Circuit",
+          "date": "2026-04-19",
+          "author": "Parin",
+          "code": "<p>Patch Kringle's invention sparked a blackout that revealed more than it hid.</p>"
+        },
+        {
+          "id": "s2-ch3",
+          "title": "Chapter 3: Reunion",
+          "date": "2026-04-26",
+          "author": "Parin",
+          "code": "<p>Old friends met in the dark; old debts were counted in whispers.</p>"
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "Series Three: Quiet Storm",
+      "image": "series3.png",
+      "intro": "Tensions simmer into a quiet storm; choices made now will echo for years.",
+      "chapters": [
+        {
+          "id": "s3-ch1",
+          "title": "Chapter 1: Calm Before",
+          "date": "2026-05-10",
+          "author": "Parin",
+          "code": "<p>Juno Bell kept her counsel. The city listened.</p>"
         }
       ]
     }
+  ],
+  "suggestions": [
+    "Add cover art for each series in the repo root and reference the filename in the series.image field.",
+    "Upload trailer.mp4 and character images to the repo root so the site can display them."
   ]
 }
