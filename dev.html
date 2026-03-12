@@ -3,19 +3,313 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>JBKF Dev Test</title>
+  <title>JBKF Developer — Simple Editor</title>
   <style>
-    body{font-family:system-ui,Arial;margin:40px;background:#f9f5f5;color:#111}
-    .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.06);max-width:800px;margin:0 auto}
-    h1{margin:0 0 8px}
-    p{margin:8px 0 0}
+    :root{--bg:#f9f5f5;--card:#fff;--edge:rgba(0,0,0,0.06);--accent:#c62828}
+    body{font-family:system-ui,Arial,Helvetica,sans-serif;background:var(--bg);margin:0;padding:28px;color:#111}
+    .wrap{max-width:980px;margin:0 auto}
+    .card{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--edge);box-shadow:0 8px 30px rgba(0,0,0,0.04)}
+    h1{margin:0 0 8px;font-size:20px}
+    label{display:block;margin-top:12px;font-weight:700}
+    input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--edge);margin-top:8px;font-family:inherit}
+    .row{display:flex;gap:8px;margin-top:12px}
+    .btn{padding:8px 12px;border-radius:8px;border:0;cursor:pointer;font-weight:700}
+    .btn.primary{background:var(--accent);color:#fff}
+    .list-compact{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+    .item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;border:1px solid var(--edge);background:#fafafa}
+    .hint{font-size:13px;color:#666;margin-top:8px}
+    .hidden{display:none}
+    pre{white-space:pre-wrap;background:#f3f3f3;padding:8px;border-radius:8px;border:1px solid var(--edge)}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Developer Page Test</h1>
-    <p>If you see this, <strong>dev.html</strong> is being served separately.</p>
-    <p>Next: upload your real <code>dev.html</code> or tell me which button still fails and I’ll patch it.</p>
+  <div class="wrap">
+    <div class="card" id="loginCard">
+      <h1>Developer Login</h1>
+      <p class="hint">Default credentials: <strong>admin / password</strong></p>
+      <label>Username</label>
+      <input id="loginUser" placeholder="admin" />
+      <label>Password</label>
+      <input id="loginPass" type="password" placeholder="password" />
+      <div class="row">
+        <button id="loginBtn" class="btn primary">Login</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="editorCard" style="margin-top:18px">
+      <h1>Series Editor (simple)</h1>
+
+      <label>Select series</label>
+      <div class="row">
+        <select id="seriesSelect"></select>
+        <button id="addSeries" class="btn">Add</button>
+        <button id="removeSeries" class="btn">Remove</button>
+      </div>
+
+      <div id="seriesForm" style="margin-top:12px">
+        <label>Title</label>
+        <input id="seriesTitle" />
+
+        <label>Intro</label>
+        <textarea id="seriesIntro" rows="3"></textarea>
+
+        <label>Title image filename (repo root)</label>
+        <input id="seriesImage" placeholder="santa.jpeg" />
+        <div class="hint">Upload the image to the repository root and enter the filename only (example: <code>santa.jpeg</code>).</div>
+
+        <label style="margin-top:12px">Chapters</label>
+        <div id="chaptersList" class="list-compact"></div>
+
+        <div class="row">
+          <button id="addChapter" class="btn">Add Chapter</button>
+        </div>
+      </div>
+
+      <div id="chapterForm" style="margin-top:14px">
+        <h2 style="margin:0 0 8px 0;font-size:16px">Edit Chapter</h2>
+        <label>Chapter title</label>
+        <input id="chapterTitle" />
+
+        <label>Date</label>
+        <input id="chapterDate" placeholder="YYYY-MM-DD" />
+
+        <label>Author</label>
+        <input id="chapterAuthor" />
+
+        <label>Code / HTML</label>
+        <textarea id="chapterCode" rows="10" placeholder="Paste HTML for the chapter here"></textarea>
+
+        <div class="row" style="justify-content:flex-end">
+          <button id="saveChapter" class="btn primary">Save Chapter</button>
+          <button id="cancelChapter" class="btn">Cancel</button>
+        </div>
+      </div>
+
+      <div class="row" style="justify-content:flex-end;margin-top:14px">
+        <button id="saveSeries" class="btn primary">Save Series</button>
+        <button id="logoutBtn" class="btn">Logout</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <p class="hint">Changes are saved to your browser storage and broadcast to any open site tab. To make edits permanent across devices, copy the data or commit manually.</p>
+        <pre id="debug" class="hidden"></pre>
+      </div>
+    </div>
   </div>
+
+  <script>
+  (function(){
+    const STORAGE_KEY = 'jbkf_simple_v1';
+    const BC_NAME = 'jbkf_channel';
+    const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(BC_NAME) : null;
+
+    const DEFAULT = {
+      about: "Jingle Bells Kick Face",
+      video: "",
+      characters: [],
+      series: [
+        { id:'s1', title:'Series One: Winter Riot', image:'', intro:'The first series.', chapters:[
+          { id:'s1-ch1', title:'Chapter 1', date:'2026-03-01', author:'Parin', code:'<p>Chapter content here</p>' }
+        ]}
+      ],
+      suggestions: []
+    };
+
+    function load(){ try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT)); }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); } }
+    function save(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); if(bc) bc.postMessage({type:'data-updated'}); }
+
+    let DATA = load();
+
+    // elements
+    const loginCard = document.getElementById('loginCard');
+    const editorCard = document.getElementById('editorCard');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const seriesSelect = document.getElementById('seriesSelect');
+    const addSeries = document.getElementById('addSeries');
+    const removeSeries = document.getElementById('removeSeries');
+    const seriesTitle = document.getElementById('seriesTitle');
+    const seriesIntro = document.getElementById('seriesIntro');
+    const seriesImage = document.getElementById('seriesImage');
+    const chaptersList = document.getElementById('chaptersList');
+    const addChapter = document.getElementById('addChapter');
+    const saveSeries = document.getElementById('saveSeries');
+
+    const chapterForm = document.getElementById('chapterForm');
+    const chapterTitle = document.getElementById('chapterTitle');
+    const chapterDate = document.getElementById('chapterDate');
+    const chapterAuthor = document.getElementById('chapterAuthor');
+    const chapterCode = document.getElementById('chapterCode');
+    const saveChapter = document.getElementById('saveChapter');
+    const cancelChapter = document.getElementById('cancelChapter');
+
+    let currentSeriesId = null;
+    let currentChapterId = null;
+
+    // credentials (client-side)
+    if(!localStorage.getItem('jbkf_dev_cred')) localStorage.setItem('jbkf_dev_cred', JSON.stringify({u:'admin', p:'password'}));
+
+    loginBtn.addEventListener('click', ()=>{
+      const u = document.getElementById('loginUser').value.trim();
+      const p = document.getElementById('loginPass').value;
+      const cred = JSON.parse(localStorage.getItem('jbkf_dev_cred') || '{}');
+      if(u === cred.u && p === cred.p){
+        loginCard.classList.add('hidden');
+        editorCard.classList.remove('hidden');
+        renderSeriesSelect();
+        hideChapterEditor();
+      } else {
+        alert('Invalid credentials');
+      }
+    });
+
+    logoutBtn.addEventListener('click', ()=>{
+      editorCard.classList.add('hidden');
+      loginCard.classList.remove('hidden');
+      currentSeriesId = null;
+      currentChapterId = null;
+    });
+
+    function uid(prefix='id'){ return prefix + Date.now().toString(36).slice(-6); }
+
+    function renderSeriesSelect(){
+      DATA = load();
+      seriesSelect.innerHTML = '';
+      (DATA.series || []).forEach(s => {
+        const opt = document.createElement('option'); opt.value = s.id; opt.textContent = s.title || s.id;
+        seriesSelect.appendChild(opt);
+      });
+      if(!currentSeriesId && DATA.series && DATA.series.length) currentSeriesId = DATA.series[0].id;
+      seriesSelect.value = currentSeriesId || (DATA.series[0] && DATA.series[0].id) || '';
+      onSeriesChange();
+    }
+
+    seriesSelect.addEventListener('change', ()=> { currentSeriesId = seriesSelect.value; onSeriesChange(); });
+
+    function onSeriesChange(){
+      currentChapterId = null;
+      DATA = load();
+      const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
+      if(!s){ seriesTitle.value=''; seriesIntro.value=''; seriesImage.value=''; chaptersList.innerHTML=''; return; }
+      seriesTitle.value = s.title || '';
+      seriesIntro.value = s.intro || '';
+      seriesImage.value = s.image || '';
+      renderChaptersList(s);
+      hideChapterEditor();
+    }
+
+    addSeries.addEventListener('click', ()=>{
+      const id = uid('s');
+      const newS = { id, title:'New Series', image:'', intro:'', chapters:[] };
+      DATA.series = DATA.series || [];
+      DATA.series.push(newS);
+      save(DATA);
+      currentSeriesId = id;
+      renderSeriesSelect();
+      onSeriesChange();
+    });
+
+    removeSeries.addEventListener('click', ()=>{
+      if(!currentSeriesId) return alert('No series selected');
+      if(!confirm('Delete selected series?')) return;
+      DATA.series = (DATA.series || []).filter(s => s.id !== currentSeriesId);
+      save(DATA);
+      currentSeriesId = DATA.series[0] ? DATA.series[0].id : null;
+      renderSeriesSelect();
+      onSeriesChange();
+    });
+
+    function renderChaptersList(series){
+      chaptersList.innerHTML = '';
+      if(!series.chapters || !series.chapters.length){ chaptersList.innerHTML = '<div class="hint">No chapters yet</div>'; return; }
+      series.chapters.forEach(ch => {
+        const div = document.createElement('div'); div.className = 'item';
+        div.innerHTML = `<div style="flex:1"><strong>${escapeHtml(ch.title)}</strong><div class="meta">${escapeHtml(ch.date)} • ${escapeHtml(ch.author)}</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn small edit-ch" data-id="${ch.id}">Edit</button>
+            <button class="btn small del-ch" data-id="${ch.id}">Remove</button>
+          </div>`;
+        chaptersList.appendChild(div);
+      });
+      chaptersList.querySelectorAll('.edit-ch').forEach(b => b.addEventListener('click', e=> openChapterEditor(e.target.dataset.id)));
+      chaptersList.querySelectorAll('.del-ch').forEach(b => b.addEventListener('click', e=>{
+        const id = e.target.dataset.id;
+        if(!confirm('Delete this chapter?')) return;
+        const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
+        s.chapters = (s.chapters || []).filter(c => c.id !== id);
+        save(DATA);
+        renderChaptersList(s);
+      }));
+    }
+
+    addChapter.addEventListener('click', ()=>{
+      if(!currentSeriesId) return alert('Select a series first');
+      const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
+      const chId = s.id + '-ch' + Date.now();
+      const newCh = { id: chId, title:'New Chapter', date:new Date().toISOString().slice(0,10), author:'', code:'' };
+      s.chapters = s.chapters || [];
+      s.chapters.push(newCh);
+      save(DATA);
+      renderChaptersList(s);
+      openChapterEditor(chId);
+    });
+
+    function openChapterEditor(chId){
+      const s = (DATA.series || []).find(x=>x.id === currentSeriesId); if(!s) return;
+      const ch = (s.chapters || []).find(x=>x.id === chId); if(!ch) return;
+      currentChapterId = chId;
+      chapterTitle.value = ch.title || '';
+      chapterDate.value = ch.date || '';
+      chapterAuthor.value = ch.author || '';
+      chapterCode.value = ch.code || '';
+      showChapterEditor();
+    }
+    function showChapterEditor(){ chapterForm.style.display = 'block'; }
+    function hideChapterEditor(){ chapterForm.style.display = 'none'; currentChapterId = null; }
+
+    saveChapter.addEventListener('click', ()=>{
+      if(!currentSeriesId || !currentChapterId) return alert('No chapter selected');
+      const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
+      const ch = (s.chapters || []).find(x=>x.id === currentChapterId);
+      if(!ch) return;
+      ch.title = chapterTitle.value.trim();
+      ch.date = chapterDate.value.trim();
+      ch.author = chapterAuthor.value.trim();
+      ch.code = chapterCode.value;
+      save(DATA);
+      renderChaptersList(s);
+      alert('Chapter saved');
+    });
+
+    cancelChapter.addEventListener('click', ()=> hideChapterEditor());
+
+    saveSeries.addEventListener('click', ()=>{
+      if(!currentSeriesId) return alert('No series selected');
+      const s = (DATA.series || []).find(x=>x.id === currentSeriesId);
+      s.title = seriesTitle.value.trim();
+      s.intro = seriesIntro.value.trim();
+      s.image = seriesImage.value.trim();
+      save(DATA);
+      renderSeriesSelect();
+      alert('Series saved');
+    });
+
+    // helper
+    function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // listen for external updates
+    if(bc) bc.onmessage = (m) => { if(m && m.data && m.data.type === 'data-updated'){ DATA = load(); renderSeriesSelect(); } };
+    window.addEventListener('storage', (e)=> { if(e.key === STORAGE_KEY){ DATA = load(); renderSeriesSelect(); } });
+
+    // init
+    (function init(){
+      if(!DATA.series) DATA.series = DEFAULT.series;
+      if(!DATA.series.length){ DATA.series = DEFAULT.series; save(DATA); }
+      currentSeriesId = DATA.series[0] ? DATA.series[0].id : null;
+    })();
+
+  })();
+  </script>
 </body>
 </html>
