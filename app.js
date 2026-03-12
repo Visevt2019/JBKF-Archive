@@ -1,64 +1,32 @@
 /* app.js
-   - Single storage key: 'jbkf_simple_v1'
+   - Loads data.json from repo (no localStorage)
    - Menu auto-closes after any navigation click (mobile fix)
-   - Latest updates route fixed
+   - Renders archive, latest, series, chapter pages
    - Renders chapter.code as HTML
-   - Characters: 6 dummy frames included in HTML; you can replace images by uploading files to repo root and editing via dev.html
 */
 
-const STORAGE_KEY = 'jbkf_simple_v1';
-const CHANNEL_NAME = 'jbkf_channel';
-const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(CHANNEL_NAME) : null;
-
-const DEFAULT = {
-  about: "Jingle Bells Kick Face is a meta series where series and chapters unfold sequentially.",
-  video: "",
-  characters: [],
-  series: [
-    {
-      id: "s1",
-      title: "Series One: Winter Riot",
-      image: "",
-      intro: "The first series introduces the world.",
-      chapters: [
-        { id: "s1-ch1", title: "Chapter 1: Bells", date: "2026-03-01", author: "Parin", code: "<p>Chapter one text.</p>" }
-      ]
-    }
-  ],
-  suggestions: []
-};
-
-let DATA = load();
-
-function load(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT));
-  }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }
-}
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); if(bc) bc.postMessage({type:'data-updated'}); }
+let DATA = null;
+let currentSeriesId = null;
 
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
-const uid = (p='id') => p + Date.now().toString(36).slice(-6);
 function esc(s){ return s ? String(s) : ''; }
-function placeholder(w=600,h=320){ const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><rect width='100%' height='100%' fill='#e9e6e6'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#bdbdbd' font-family='Arial' font-size='20'>No image</text></svg>`; return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); }
-
-/* Live update handlers */
-if(bc){
-  bc.onmessage = (m) => {
-    if(m && m.data && m.data.type === 'data-updated') {
-      DATA = load();
-      refreshCurrentView();
-    }
-  };
+function placeholder(w=600,h=320){
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><rect width='100%' height='100%' fill='#e9e6e6'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#bdbdbd' font-family='Arial' font-size='20'>No image</text></svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
-window.addEventListener('storage', (e) => {
-  if(e.key === STORAGE_KEY) {
-    DATA = load();
-    refreshCurrentView();
+
+/* Load data.json */
+async function loadData(){
+  try {
+    const res = await fetch("data.json", { cache: "no-store" });
+    if(!res.ok) throw new Error("Failed to load data.json");
+    DATA = await res.json();
+  } catch(e){
+    console.error(e);
+    DATA = { about: "Error loading data", video: "", characters: [], series: [] };
   }
-});
+}
 
 /* Menu and routing */
 const pages = $$('.page');
@@ -68,22 +36,22 @@ function showPage(id){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 const menuBtn = $('#menuBtn'), sideMenu = $('#sideMenu'), menuCloseTop = $('#menuCloseTop');
-menuBtn.addEventListener('click', ()=> sideMenu.setAttribute('aria-hidden', sideMenu.getAttribute('aria-hidden') === 'false' ? 'true' : 'false'));
-menuCloseTop.addEventListener('click', ()=> sideMenu.setAttribute('aria-hidden','true'));
-document.addEventListener('click', (e)=> { if(!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) sideMenu.setAttribute('aria-hidden','true'); });
-
-function closeMenu(){ sideMenu.setAttribute('aria-hidden','true'); }
+if(menuBtn) menuBtn.addEventListener('click', ()=> sideMenu.setAttribute('aria-hidden', sideMenu.getAttribute('aria-hidden') === 'false' ? 'true' : 'false'));
+if(menuCloseTop) menuCloseTop.addEventListener('click', ()=> sideMenu.setAttribute('aria-hidden','true'));
+document.addEventListener('click', (e)=> {
+  if(sideMenu && !sideMenu.contains(e.target) && !menuBtn.contains(e.target)) sideMenu.setAttribute('aria-hidden','true');
+});
+function closeMenu(){ if(sideMenu) sideMenu.setAttribute('aria-hidden','true'); }
 
 /* Menu links: auto-close after click */
 $$('[data-route]').forEach(el => el.addEventListener('click', e => {
   e.preventDefault();
   const route = el.getAttribute('data-route');
   routeTo(route);
-  closeMenu(); // ensure menu closes after every press
+  closeMenu();
 }));
-
-/* Visit Archive button ring should also close menu on mobile */
-$('#visitArchiveBtn').addEventListener('click', (e)=>{
+const visitArchiveBtn = $('#visitArchiveBtn');
+if(visitArchiveBtn) visitArchiveBtn.addEventListener('click', (e)=>{
   const route = e.target.getAttribute('data-route');
   routeTo(route);
   closeMenu();
@@ -97,25 +65,44 @@ function routeTo(route){
 }
 
 /* Back buttons */
-$$('[data-back]').forEach(b => b.addEventListener('click', ()=> {
-  if($('#chapter').classList.contains('active')) showPage('series');
-  else if($('#series').classList.contains('active')) showPage('archive');
+$$('[data-back]').forEach(b => b.addEventListener('click', ()=>{
+  if($('#chapter') && $('#chapter').classList.contains('active')) showPage('series');
+  else if($('#series') && $('#series').classList.contains('active')) showPage('archive');
   else showPage('home');
 }));
 
 /* Home render */
 function renderHome(){
+  if(!DATA) return;
   $('#aboutText').innerHTML = DATA.about || '';
   const vidSrc = DATA.video ? `./${DATA.video}` : '';
   const source = $('#charactersVideo source');
-  source.src = vidSrc;
-  $('#charactersVideo').load();
+  if(source) source.src = vidSrc;
+  const video = $('#charactersVideo');
+  if(video) video.load();
+
+  // If characters array exists, try to populate images and names
+  const grid = $('#charactersGrid');
+  if(grid && DATA.characters && DATA.characters.length){
+    grid.innerHTML = '';
+    DATA.characters.slice(0,6).forEach((c, i) => {
+      const div = document.createElement('div');
+      div.className = 'char-card';
+      div.innerHTML = `
+        <div class="char-name">${esc(c.name || `Character ${i+1}`)}</div>
+        <img class="char-img" src="${c.image ? './' + c.image : ''}" alt="${esc(c.name || '')}">
+        <div class="char-desc">${esc(c.desc || '')}</div>
+      `;
+      grid.appendChild(div);
+    });
+  }
 }
-function scrollToChars(){ const el = $('#charactersPreview'); if(el) el.scrollIntoView({behavior:'smooth'}); }
 
 /* Archive */
 function renderArchive(){
-  const grid = $('#seriesGrid'); grid.innerHTML = '';
+  if(!DATA) return;
+  const grid = $('#seriesGrid'); if(!grid) return;
+  grid.innerHTML = '';
   (DATA.series || []).forEach(s => {
     const card = document.createElement('div'); card.className = 'card'; card.style.cursor = 'pointer';
     card.innerHTML = `
@@ -130,7 +117,8 @@ function renderArchive(){
 
 /* Latest */
 function renderLatest(){
-  const wrap = $('#latestList');
+  if(!DATA) return;
+  const wrap = $('#latestList'); if(!wrap) return;
   wrap.innerHTML = '';
   const items = [];
   (DATA.series || []).forEach(s => {
@@ -149,13 +137,15 @@ function renderLatest(){
 }
 
 /* Series view */
-let currentSeriesId = null;
 function openSeries(id){
+  if(!DATA) return;
   const s = (DATA.series || []).find(x=>x.id===id); if(!s) return;
   currentSeriesId = id;
-  $('#seriesTitle').textContent = s.title;
-  $('#seriesIntro').innerHTML = `<div style="display:flex;gap:12px;align-items:flex-start"><img src="${s.image ? './' + s.image : placeholder(300,160)}" style="width:220px;height:120px;object-fit:cover;border-radius:10px"><div><p>${esc(s.intro)}</p></div></div>`;
-  const list = $('#chaptersList'); list.innerHTML = '';
+  const titleEl = $('#seriesTitle'); if(titleEl) titleEl.textContent = s.title;
+  const introEl = $('#seriesIntro');
+  if(introEl) introEl.innerHTML = `<div style="display:flex;gap:12px;align-items:flex-start"><img src="${s.image ? './' + s.image : placeholder(300,160)}" style="width:220px;height:120px;object-fit:cover;border-radius:10px;margin-right:12px"><div><p>${esc(s.intro)}</p></div></div>`;
+  const list = $('#chaptersList'); if(!list) return;
+  list.innerHTML = '';
   (s.chapters || []).forEach(ch => {
     const li = document.createElement('li'); li.className = 'item';
     li.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${esc(ch.title)}</strong><div class="meta">${esc(ch.date)} • ${esc(ch.author)}</div></div><button class="btn" data-ch="${ch.id}">Open</button></div>`;
@@ -167,20 +157,27 @@ function openSeries(id){
 
 /* Chapter view */
 function openChapter(seriesId, chapterId){
+  if(!DATA) return;
   const s = (DATA.series || []).find(x=>x.id===seriesId); if(!s) return;
   const ch = (s.chapters || []).find(c=>c.id===chapterId); if(!ch) return;
-  $('#chapterTitle').textContent = ch.title;
-  $('#chapterMeta').textContent = `${ch.date} • ${ch.author}`;
-  $('#chapterContent').innerHTML = ch.code || '<p>(No content)</p>';
+  const title = $('#chapterTitle'); if(title) title.textContent = ch.title;
+  const meta = $('#chapterMeta'); if(meta) meta.textContent = `${ch.date || ''} • ${ch.author || ''}`;
+  const content = $('#chapterContent'); if(content) content.innerHTML = ch.code || '<p>(No content)</p>';
   showPage('chapter');
 }
 
-/* Info & init */
-function renderInfo(){ $('#infoText').innerHTML = DATA.about || ''; }
-function refreshCurrentView(){ renderHome(); renderArchive(); renderLatest(); if(currentSeriesId) openSeries(currentSeriesId); }
-renderHome(); renderArchive(); renderLatest();
+/* Info */
+function renderInfo(){ if(!DATA) return; const el = $('#infoText'); if(el) el.innerHTML = DATA.about || ''; }
 
-/* Wire hero buttons */
-$$('.hero-actions [data-route]').forEach(b => b.addEventListener('click', e=>{
-  const route = b.getAttribute('data-route'); routeTo(route); closeMenu();
-}));
+/* Init */
+async function init(){
+  await loadData();
+  renderHome();
+  renderArchive();
+  renderLatest();
+  // Wire hero buttons (in case they exist)
+  $$('.hero-actions [data-route]').forEach(b => b.addEventListener('click', e=>{
+    const route = b.getAttribute('data-route'); routeTo(route); closeMenu();
+  }));
+}
+init();
