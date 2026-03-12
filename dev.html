@@ -3,94 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>JBKF Developer</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>JBKF Dev Test</title>
   <style>
-    .dev-container{max-width:980px;margin:100px auto;padding:18px}
-    .dev-card{padding:18px;border-radius:12px;border:1px solid rgba(0,0,0,0.06);background:#fff}
-    .row{display:flex;gap:8px;align-items:center;margin-top:10px}
-    .hidden{display:none}
-    label{font-weight:700;margin-top:8px;display:block}
-    input, textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);margin-top:6px}
-    .small{width:auto;padding:8px 10px}
-    .list-compact{margin-top:8px;display:flex;flex-direction:column;gap:8px}
-    .list-compact .item{padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center}
-    .hint{font-size:13px;color:#666;margin-top:6px}
+    body{font-family:system-ui,Arial;margin:40px;background:#f9f5f5;color:#111}
+    .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.06);max-width:800px;margin:0 auto}
+    h1{margin:0 0 8px}
+    p{margin:8px 0 0}
   </style>
 </head>
 <body>
-  <header class="site-header dev-header">
-    <div class="brand">JBKF Developer</div>
-    <a href="index.html" class="btn">Open Site</a>
-  </header>
-
-  <main class="container dev-container">
-    <section id="loginCard" class="dev-card">
-      <h2>Developer Login</h2>
-      <p class="hint">Default credentials: <strong>admin / password</strong></p>
-      <input id="loginUser" placeholder="Username" />
-      <input id="loginPass" placeholder="Password" type="password" />
-      <div class="row">
-        <button id="loginBtn" class="btn primary small">Login</button>
-      </div>
-    </section>
-
-    <section id="editorCard" class="dev-card hidden" aria-hidden="true">
-      <h2>Series Editor</h2>
-
-      <label>Select series to edit</label>
-      <div class="row">
-        <select id="seriesSelect"></select>
-        <button id="addSeries" class="btn small">Add Series</button>
-        <button id="removeSeries" class="btn small">Remove Series</button>
-      </div>
-
-      <div id="seriesForm" style="margin-top:12px">
-        <label>Title</label>
-        <input id="seriesTitle" placeholder="Series title" />
-
-        <label>Intro</label>
-        <textarea id="seriesIntro" rows="3" placeholder="Short intro for the series"></textarea>
-
-        <label>Title image filename (repo root)</label>
-        <input id="seriesImage" placeholder="santa.jpeg" />
-        <div class="hint">Upload the image to the repository root and enter the filename only (example: <code>santa.jpeg</code>).</div>
-
-        <label style="margin-top:12px">Chapters</label>
-        <div id="chaptersList" class="list-compact"></div>
-
-        <div class="row">
-          <button id="addChapter" class="btn small">Add Chapter</button>
-        </div>
-      </div>
-
-      <div id="chapterForm" style="margin-top:14px">
-        <h3 style="margin:0 0 8px 0">Edit Chapter</h3>
-        <label>Chapter title</label>
-        <input id="chapterTitle" placeholder="Chapter title" />
-
-        <label>Date</label>
-        <input id="chapterDate" placeholder="YYYY-MM-DD" />
-
-        <label>Author</label>
-        <input id="chapterAuthor" placeholder="Author name" />
-
-        <label>Code / HTML (paste content here)</label>
-        <textarea id="chapterCode" rows="10" placeholder="Paste HTML or code for the chapter here"></textarea>
-
-        <div class="row" style="justify-content:flex-end">
-          <button id="saveChapter" class="btn primary small">Save Chapter</button>
-          <button id="cancelChapter" class="btn small">Cancel</button>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:14px;justify-content:flex-end">
-        <button id="saveSeries" class="btn primary small">Save Series</button>
-        <button id="logoutBtn" class="btn small">Logout</button>
-      </div>
-    </section>
-  </main>
-
-  <script src="dev.js"></script>
+  <div class="card">
+    <h1>Developer Page Test</h1>
+    <p>If you see this, <strong>dev.html</strong> is being served separately.</p>
+    <p>Next: upload your real <code>dev.html</code> or tell me which button still fails and I’ll patch it.</p>
+  </div>
 </body>
 </html>
