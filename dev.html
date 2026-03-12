@@ -1,90 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>JBKF Developer</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script src="dev.js" defer></script>
-  <style>
-    body { max-width: 980px; margin: 28px auto; padding: 18px; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
-    h2 { margin: 6px 0 12px 0; }
-    .hidden { display: none; }
-    label { display:block; margin:8px 0; font-weight:600; }
-    input, textarea, select { width:100%; padding:8px; margin-top:6px; border-radius:8px; border:1px solid #e6e6e6; }
-    button { padding:8px 12px; margin:8px 6px 8px 0; border-radius:8px; cursor:pointer; border:1px solid #ddd; background:#fff; }
-    .item { display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #eee; border-radius:8px; margin:8px 0; }
-    .meta { font-size:12px; color:#666; margin-top:4px; }
-    .hint { color:#888; font-size:13px; }
-    #editorCard { display:none; }
-    .controls { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-  </style>
+<meta charset="utf-8">
+<title>JBKF Developer Panel</title>
+<script src="dev.js" defer></script>
+
+<style>
+body{
+  font-family:Arial, sans-serif;
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  border:1px solid #ddd;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+
+.hidden{
+  display:none;
+}
+
+input, textarea, select{
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+  margin-bottom:10px;
+}
+
+button{
+  padding:8px 14px;
+  margin-right:6px;
+}
+
+.item{
+  border:1px solid #eee;
+  padding:10px;
+  margin-bottom:8px;
+  display:flex;
+  justify-content:space-between;
+}
+#errorBox{
+  background:#ffe6e6;
+  padding:10px;
+  margin-bottom:15px;
+  display:none;
+}
+</style>
 </head>
+
 <body>
-  <!-- Login -->
-  <div id="loginCard">
-    <h2>Developer Login</h2>
-    <label>Username
-      <input id="loginUser" placeholder="Username" value="admin">
-    </label>
-    <label>Password
-      <input id="loginPass" type="password" placeholder="Password" value="password">
-    </label>
-    <div class="controls">
-      <button id="loginBtn">Login</button>
-    </div>
-    <p class="hint">This page commits directly to <code>data.json</code>. You will be prompted for a GitHub token when saving.</p>
-  </div>
 
-  <!-- Editor -->
-  <div id="editorCard">
-    <h2>Series Editor</h2>
+<h1>JBKF Developer Panel</h1>
 
-    <div class="controls">
-      <select id="seriesSelect" style="min-width:220px"></select>
-      <button id="addSeries">Add Series</button>
-      <button id="removeSeries">Remove Series</button>
-    </div>
+<div id="errorBox"></div>
 
-    <div style="margin-top:12px;">
-      <label>Title
-        <input id="seriesTitle" placeholder="Series title">
-      </label>
-      <label>Intro
-        <input id="seriesIntro" placeholder="Short intro">
-      </label>
-      <label>Image filename
-        <input id="seriesImage" placeholder="e.g. series1.png">
-      </label>
-      <div style="margin-top:8px;">
-        <button id="saveSeries">Save Series (commit)</button>
-      </div>
-    </div>
+<div id="loginCard" class="card">
+<h2>Login</h2>
 
-    <h3 style="margin-top:18px">Chapters</h3>
-    <div id="chaptersList"></div>
-    <div style="margin-top:8px;">
-      <button id="addChapter">Add Chapter</button>
-    </div>
+<input id="loginUser" placeholder="Username">
+<input id="loginPass" type="password" placeholder="Password">
 
-    <form id="chapterForm" style="display:none; margin-top:12px;">
-      <h3>Edit Chapter</h3>
-      <label>Title
-        <input id="chapterTitle" placeholder="Chapter title">
-      </label>
-      <label>Date
-        <input id="chapterDate" type="date">
-      </label>
-      <label>Author
-        <input id="chapterAuthor" placeholder="Author name">
-      </label>
-      <label>Code (HTML)
-        <textarea id="chapterCode" rows="8" placeholder="<p>Chapter content</p>"></textarea>
-      </label>
-      <div style="margin-top:8px;">
-        <button type="button" id="saveChapter">Save Chapter (commit)</button>
-        <button type="button" id="cancelChapter">Cancel</button>
-      </div>
-    </form>
-  </div>
+<button id="loginBtn">Login</button>
+
+<p>This editor updates <b>data.json</b> directly.</p>
+</div>
+
+
+<div id="editorCard" class="card hidden">
+
+<h2>Series</h2>
+
+<select id="seriesSelect"></select>
+
+<button id="addSeries">Add Series</button>
+<button id="removeSeries">Remove Series</button>
+
+<h3>Edit Series</h3>
+
+<input id="seriesTitle" placeholder="Title">
+<input id="seriesIntro" placeholder="Intro">
+<input id="seriesImage" placeholder="Image filename">
+
+<button id="saveSeries">Save Series</button>
+
+
+<h2>Chapters</h2>
+
+<div id="chaptersList"></div>
+
+<button id="addChapter">Add Chapter</button>
+
+
+<div id="chapterEditor" class="hidden">
+
+<h3>Edit Chapter</h3>
+
+<input id="chapterTitle" placeholder="Title">
+<input id="chapterDate" type="date">
+<input id="chapterAuthor" placeholder="Author">
+
+<textarea id="chapterCode" rows="8"></textarea>
+
+<button id="saveChapter">Save Chapter</button>
+<button id="cancelChapter">Cancel</button>
+
+</div>
+
+</div>
+
 </body>
 </html>
