@@ -1,0 +1,20 @@
+{
+  "about": "Jingle Bells Kick Face",
+  "series": [
+    {
+      "id": "s1",
+      "title": "Series One: Winter Riot",
+      "intro": "The first series introduces the world.",
+      "image": "series1.png",
+      "chapters": [
+        {
+          "id": "s1-ch1",
+          "title": "Chapter 1: Bells",
+          "date": "2026-03-01",
+          "author": "Parin",
+          "code": "<p>Chapter one text goes here.</p>"
+        }
+      ]
+    }
+  ]
+}
