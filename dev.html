@@ -3,117 +3,94 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Jingle Bells Kick Face</title>
+  <title>JBKF Developer</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .dev-container{max-width:980px;margin:100px auto;padding:18px}
+    .dev-card{padding:18px;border-radius:12px;border:1px solid rgba(0,0,0,0.06);background:#fff}
+    .row{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .hidden{display:none}
+    label{font-weight:700;margin-top:8px;display:block}
+    input, textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);margin-top:6px}
+    .small{width:auto;padding:8px 10px}
+    .list-compact{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+    .list-compact .item{padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center}
+    .hint{font-size:13px;color:#666;margin-top:6px}
+  </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="brand">Jingle Bells Kick Face</div>
-    <button id="menuBtn" class="menu-btn" aria-label="Open menu">☰</button>
+  <header class="site-header dev-header">
+    <div class="brand">JBKF Developer</div>
+    <a href="index.html" class="btn">Open Site</a>
   </header>
 
-  <aside id="sideMenu" class="side-menu" aria-hidden="true">
-    <nav class="menu-inner" role="navigation" aria-label="Main menu">
-      <ul class="menu-list">
-        <li><a href="#" data-route="archive">Archive</a></li>
-        <li><a href="#" data-route="latest">Latest updates</a></li>
-        <li><a href="#" data-route="info">More info</a></li>
-        <li><a href="#" data-route="suggestions">Suggestions</a></li>
-        <li><a href="#" data-route="characters">Know our characters</a></li>
-      </ul>
-    </nav>
-    <div class="menu-footer">
-      <a class="small-link" href="dev.html" target="_blank" rel="noopener">Developer Page</a>
-      <button id="closeMenu" class="close-menu" aria-label="Close menu">✕</button>
-    </div>
-  </aside>
-
-  <main id="app" class="container">
-    <section id="home" class="page active">
-      <div class="hero card">
-        <h1>Welcome to Jingle Bells Kick Face</h1>
-        <div class="hero-actions">
-          <button class="btn primary" data-route="archive">Visit Archive</button>
-          <button class="btn" data-route="info">Know more</button>
-        </div>
-      </div>
-
-      <section id="charactersPreview" class="section">
-        <h2>Characters</h2>
-        <div class="video-wrap card">
-          <video id="charactersVideo" controls playsinline preload="metadata">
-            <source src="" type="video/mp4">
-          </video>
-        </div>
-        <div id="charactersList" class="cards"></div>
-      </section>
-
-      <section id="aboutPreview" class="section">
-        <h2>About JBKF</h2>
-        <div id="aboutText" class="card"></div>
-      </section>
-    </section>
-
-    <section id="archive" class="page">
-      <div class="page-header">
-        <button class="back" data-back>← Back</button>
-        <h2>Archive</h2>
-      </div>
-      <div id="seriesGrid" class="grid"></div>
-    </section>
-
-    <section id="series" class="page">
-      <div class="page-header">
-        <button class="back" data-back>← Back</button>
-        <h2 id="seriesTitle">Series</h2>
-      </div>
-      <div id="seriesIntro" class="card"></div>
-
-      <div class="section">
-        <h3>Temporary Characters</h3>
-        <div id="seriesCharacters" class="cards"></div>
-      </div>
-
-      <div class="section">
-        <h3>Chapters</h3>
-        <ul id="chaptersList" class="list"></ul>
+  <main class="container dev-container">
+    <section id="loginCard" class="dev-card">
+      <h2>Developer Login</h2>
+      <p class="hint">Default credentials: <strong>admin / password</strong></p>
+      <input id="loginUser" placeholder="Username" />
+      <input id="loginPass" placeholder="Password" type="password" />
+      <div class="row">
+        <button id="loginBtn" class="btn primary small">Login</button>
       </div>
     </section>
 
-    <section id="chapter" class="page">
-      <div class="page-header">
-        <button class="back" data-back>← Back</button>
-        <div>
-          <h2 id="chapterTitle">Chapter</h2>
-          <div id="chapterMeta" class="meta"></div>
-        </div>
-      </div>
-      <article id="chapterContent" class="content card"></article>
-    </section>
+    <section id="editorCard" class="dev-card hidden" aria-hidden="true">
+      <h2>Series Editor</h2>
 
-    <section id="info" class="page">
-      <div class="page-header">
-        <button class="back" data-back>← Back</button>
-        <h2>More Info</h2>
+      <label>Select series to edit</label>
+      <div class="row">
+        <select id="seriesSelect"></select>
+        <button id="addSeries" class="btn small">Add Series</button>
+        <button id="removeSeries" class="btn small">Remove Series</button>
       </div>
-      <div id="infoText" class="card content"></div>
-    </section>
 
-    <section id="suggestions" class="page">
-      <div class="page-header">
-        <button class="back" data-back>← Back</button>
-        <h2>Suggestions</h2>
-      </div>
-      <div class="card">
-        <textarea id="suggestionInput" placeholder="Write your suggestions..." rows="6"></textarea>
+      <div id="seriesForm" style="margin-top:12px">
+        <label>Title</label>
+        <input id="seriesTitle" placeholder="Series title" />
+
+        <label>Intro</label>
+        <textarea id="seriesIntro" rows="3" placeholder="Short intro for the series"></textarea>
+
+        <label>Title image filename (repo root)</label>
+        <input id="seriesImage" placeholder="santa.jpeg" />
+        <div class="hint">Upload the image to the repository root and enter the filename only (example: <code>santa.jpeg</code>).</div>
+
+        <label style="margin-top:12px">Chapters</label>
+        <div id="chaptersList" class="list-compact"></div>
+
         <div class="row">
-          <button id="saveSuggestion" class="btn primary">Save Suggestion</button>
+          <button id="addChapter" class="btn small">Add Chapter</button>
         </div>
-        <div id="suggestionsList" class="saved"></div>
+      </div>
+
+      <div id="chapterForm" style="margin-top:14px">
+        <h3 style="margin:0 0 8px 0">Edit Chapter</h3>
+        <label>Chapter title</label>
+        <input id="chapterTitle" placeholder="Chapter title" />
+
+        <label>Date</label>
+        <input id="chapterDate" placeholder="YYYY-MM-DD" />
+
+        <label>Author</label>
+        <input id="chapterAuthor" placeholder="Author name" />
+
+        <label>Code / HTML (paste content here)</label>
+        <textarea id="chapterCode" rows="10" placeholder="Paste HTML or code for the chapter here"></textarea>
+
+        <div class="row" style="justify-content:flex-end">
+          <button id="saveChapter" class="btn primary small">Save Chapter</button>
+          <button id="cancelChapter" class="btn small">Cancel</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px;justify-content:flex-end">
+        <button id="saveSeries" class="btn primary small">Save Series</button>
+        <button id="logoutBtn" class="btn small">Logout</button>
       </div>
     </section>
   </main>
 
-  <script src="app.js"></script>
+  <script src="dev.js"></script>
 </body>
 </html>
