@@ -93,16 +93,16 @@
     },
     {
       "id": "s3",
-      "title": "Series Three: Quiet Storm",
+      "title": "Series Three: m",
       "image": "series3.png",
-      "intro": "Tensions simmer into a quiet storm; choices made now will echo for years.",
+      "intro": "Tensions simmer inhoices made now will echo for years.",
       "chapters": [
         {
           "id": "s3-ch1",
-          "title": "Chapter 1: Calm Before",
-          "date": "2026-05-10",
-          "author": "Parin",
-          "code": "<p>Juno Bell kept her counsel. The city listened.</p>"
+          "title": "Chapr 1: Calm Before",
+          "date": "20205-10",
+          "author": "Pin",
+          "code": "<p>Juno Bell kepcounsel. The city listened.</p>"
         }
       ]
     }
